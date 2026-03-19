@@ -3,399 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AURA vs LAURA — khandbl</title>
+<title>Aurometro</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
-
-  :root {
-    --aura:       #ff2244;
-    --aura-glow:  #ff224488;
-    --laura:      #00cfff;
-    --laura-glow: #00cfff88;
-    --bg:         #0a0a0f;
-    --surface:    #111118;
-  }
-
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: #ddd;
-    font-family: 'Space Mono', monospace;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+  body { background: transparent; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .widget {
+    background: rgba(10,10,15,0.92);
+    border: 1px solid #222; border-radius: 16px;
+    padding: 10px 18px 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
   }
-
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px);
-    pointer-events: none; z-index: 100;
-  }
-
-  .container {
-    width: 100%; max-width: 860px;
-    padding: 24px;
-    display: flex; flex-direction: column; gap: 24px;
-  }
-
-  /* Header */
-  .header { text-align: center; }
-  .header h1 {
+  .title {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(3rem, 9vw, 5.5rem);
-    letter-spacing: 0.08em; line-height: 1;
-    background: linear-gradient(90deg, var(--laura) 0%, #fff 40%, #fff 60%, var(--aura) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    font-size: 0.7rem; letter-spacing: 0.35em;
+    color: #888; text-transform: uppercase;
   }
-  .channel-badge {
-    display: inline-block; margin-top: 6px;
-    padding: 3px 14px; border: 1px solid #222; border-radius: 20px;
-    font-size: 0.65rem; color: #444; letter-spacing: 0.15em; text-transform: uppercase;
-  }
-
-  /* Status */
-  .status-bar {
-    display: flex; align-items: center; justify-content: center;
-    gap: 8px; font-size: 0.65rem; letter-spacing: 0.1em;
-    text-transform: uppercase; color: #444;
-  }
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #333;
-    transition: background 0.3s, box-shadow 0.3s;
-  }
-  .status-dot.connecting { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; animation: blink 1s infinite; }
-  .status-dot.connected  { background: #00ff88; box-shadow: 0 0 8px #00ff88; animation: blink 2s infinite; }
-  .status-dot.error      { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  /* Scores */
-  .scores {
-    display: flex; align-items: center;
-    justify-content: space-between; gap: 16px;
-  }
-
-  .score-block {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 4px; flex: 0 0 auto; min-width: 110px;
-  }
-  .score-label {
+  .row { display:flex; align-items:center; gap:14px; }
+  .num {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(1.3rem, 3.5vw, 2rem); letter-spacing: 0.12em;
+    font-size: 2.8rem; line-height:1;
+    min-width: 52px; text-align:center;
+    transition: transform 0.12s;
   }
-  .score-label.laura { color: var(--laura); text-shadow: 0 0 20px var(--laura-glow); }
-  .score-label.aura  { color: var(--aura);  text-shadow: 0 0 20px var(--aura-glow);  }
-  .score-count {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(3.5rem, 11vw, 7rem); line-height: 1;
-    transition: transform 0.15s;
-  }
-  .score-count.laura { color: var(--laura); text-shadow: 0 0 40px var(--laura-glow), 0 0 80px var(--laura-glow); }
-  .score-count.aura  { color: var(--aura);  text-shadow: 0 0 40px var(--aura-glow),  0 0 80px var(--aura-glow);  }
-  .score-count.pop   { transform: scale(1.35); }
-
-  /* Bar */
-  .bar-wrapper { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .num.laura { color:#00cfff; text-shadow:0 0 18px #00cfff99; }
+  .num.aura  { color:#ff2244; text-shadow:0 0 18px #ff224499; }
+  .num.pop   { transform: scale(1.35); }
+  .bar-wrap { display:flex; flex-direction:column; gap:5px; }
   .bar-track {
-    height: 24px; background: #1a1a24; border-radius: 12px;
-    overflow: hidden; border: 1px solid #1e1e2e; position: relative;
+    width:220px; height:18px;
+    background:#1a1a24; border-radius:9px;
+    overflow:hidden; position:relative; border:1px solid #222;
   }
-  .bar-fill-left {
-    position: absolute; left:0; top:0; bottom:0; border-radius: 12px;
-    background: linear-gradient(90deg, #006699, var(--laura));
-    box-shadow: 0 0 20px var(--laura-glow);
-    transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  .bar-l {
+    position:absolute; left:0; top:0; bottom:0; border-radius:9px;
+    background:linear-gradient(90deg,#006699,#00cfff);
+    box-shadow:0 0 12px #00cfff66;
+    transition:width 0.45s cubic-bezier(0.34,1.56,0.64,1);
   }
-  .bar-fill-right {
-    position: absolute; right:0; top:0; bottom:0; border-radius: 12px;
-    background: linear-gradient(270deg, #aa0022, var(--aura));
-    box-shadow: 0 0 20px var(--aura-glow);
-    transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  .bar-r {
+    position:absolute; right:0; top:0; bottom:0; border-radius:9px;
+    background:linear-gradient(270deg,#990022,#ff2244);
+    box-shadow:0 0 12px #ff224466;
+    transition:width 0.45s cubic-bezier(0.34,1.56,0.64,1);
   }
-  .bar-center {
-    position: absolute; left:50%; top:-2px; bottom:-2px;
-    width:2px; background:#fff; transform:translateX(-50%); opacity:0.25;
+  .bar-mid { position:absolute; left:50%; top:0; bottom:0; width:2px; background:#fff; transform:translateX(-50%); opacity:0.2; }
+  .pct-row { display:flex; justify-content:space-between; font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.08em; }
+  .pct-row .l { color:#00cfff; opacity:0.6; }
+  .pct-row .r { color:#ff2244; opacity:0.6; }
+  .btn-reset {
+    background:none; border:1px solid #2a2a3a; border-radius:8px;
+    color:#aaa; font-size:1rem; width:30px; height:30px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s; flex-shrink:0;
   }
-  .bar-pct-row {
-    display: flex; justify-content: space-between;
-    font-size: 0.65rem;
-  }
-  .bar-pct-row .l { color: var(--laura); opacity: 0.7; }
-  .bar-pct-row .r { color: var(--aura);  opacity: 0.7; }
-
-  /* Leading */
-  .leading {
-    text-align: center; font-size: 0.75rem;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    min-height: 1.2em; transition: color 0.4s;
-  }
-
-  /* Feed */
-  .feed-section {
-    background: var(--surface); border: 1px solid #1a1a28;
-    border-radius: 12px; padding: 14px; max-height: 180px; overflow: hidden;
-  }
-  .feed-title {
-    font-size: 0.55rem; text-transform: uppercase;
-    letter-spacing: 0.2em; color: #2a2a3a; margin-bottom: 8px;
-  }
-  .feed-item {
-    display: flex; align-items: baseline; gap: 8px;
-    font-size: 0.7rem; margin-bottom: 5px;
-    opacity: 0; animation: fadeUp 0.3s ease forwards;
-  }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-  .feed-user { color: #444; flex-shrink:0; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .feed-msg  { flex:1; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .feed-tag  { font-size:0.55rem; padding:1px 7px; border-radius:8px; font-weight:700; flex-shrink:0; }
-  .feed-tag.aura  { background:rgba(255,34,68,0.15);  color:var(--aura);  }
-  .feed-tag.laura { background:rgba(0,207,255,0.12); color:var(--laura); }
-
-  /* Server URL config */
-  .config-section {
-    background: var(--surface); border: 1px solid #1a1a28;
-    border-radius: 12px; padding: 14px;
-  }
-  .config-title { font-size: 0.55rem; text-transform:uppercase; letter-spacing:0.2em; color:#2a2a3a; margin-bottom:10px; }
-  .config-row { display:flex; gap:8px; }
-  .config-row input {
-    flex:1; background:#0d0d14; border:1px solid #1e1e2e; border-radius:8px;
-    color:#aaa; font-family:'Space Mono',monospace; font-size:0.7rem;
-    padding:8px 12px; outline:none;
-  }
-  .config-row input:focus { border-color:#333; }
-  .btn {
-    background:#1a1a24; border:1px solid #2a2a3a; border-radius:8px;
-    color:#777; font-family:'Space Mono',monospace; font-size:0.65rem;
-    padding:8px 14px; cursor:pointer; letter-spacing:0.08em; text-transform:uppercase;
-    transition:all 0.2s;
-  }
-  .btn:hover { color:#fff; border-color:#444; }
-  .btn.danger { color:#ff4455; border-color:#2a1015; }
-  .btn.danger:hover { background:#1a080d; border-color:var(--aura); }
-
-  .controls { display:flex; justify-content:center; gap:10px; }
-
-  /* Flash */
-  .flash { position:fixed; inset:0; pointer-events:none; z-index:50; opacity:0; transition:opacity 0.1s; }
-  .flash.aura-flash  { background:radial-gradient(ellipse at right, rgba(255,34,68,0.22) 0%, transparent 65%); }
-  .flash.laura-flash { background:radial-gradient(ellipse at left,  rgba(0,207,255,0.18) 0%, transparent 65%); }
+  .btn-reset:hover { color:#ff4455; border-color:#ff2244; background:rgba(255,34,68,0.08); }
+  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#333; }
+  .dot.on   { background:#00ff88; box-shadow:0 0 6px #00ff88; animation:p 2s infinite; }
+  .dot.err  { background:#ff3333; }
+  .dot.wait { background:#ffaa00; animation:p 1s infinite; }
+  @keyframes p { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .flash { position:fixed; inset:0; pointer-events:none; opacity:0; transition:opacity 0.1s; z-index:50; }
+  .flash.af { background:radial-gradient(ellipse at right,rgba(255,34,68,0.2) 0%,transparent 60%); }
+  .flash.lf { background:radial-gradient(ellipse at left,rgba(0,207,255,0.16) 0%,transparent 60%); }
   .flash.show { opacity:1; }
-
-  .particle {
-    position:fixed; width:6px; height:6px; border-radius:2px;
-    pointer-events:none; z-index:200;
-    animation: fly 0.9s ease-out forwards;
-  }
-  @keyframes fly { 0%{transform:translateY(0) rotate(0deg);opacity:1} 100%{transform:translateY(-90px) rotate(360deg) scale(0);opacity:0} }
 </style>
 </head>
 <body>
-
-<div class="flash aura-flash"  id="flashAura"></div>
-<div class="flash laura-flash" id="flashLaura"></div>
-
-<div class="container">
-
-  <div class="header">
-    <h1>LAURA ⚡ AURA</h1>
-    <span class="channel-badge">khandbl · kick.com</span>
-  </div>
-
-  <div class="status-bar">
-    <div class="status-dot" id="statusDot"></div>
-    <span id="statusText">Iniciando…</span>
-  </div>
-
-  <div class="scores">
-    <div class="score-block">
-      <div class="score-label laura">LAURA</div>
-      <div class="score-count laura" id="countLaura">0</div>
-    </div>
-    <div class="bar-wrapper">
+<div class="flash af" id="fA"></div>
+<div class="flash lf" id="fL"></div>
+<div class="widget">
+  <div class="title">Aurometro</div>
+  <div class="row">
+    <div class="dot wait" id="dot"></div>
+    <div class="num laura" id="nL">0</div>
+    <div class="bar-wrap">
       <div class="bar-track">
-        <div class="bar-fill-left"  id="barLaura" style="width:50%"></div>
-        <div class="bar-fill-right" id="barAura"  style="width:50%"></div>
-        <div class="bar-center"></div>
+        <div class="bar-l" id="bL" style="width:50%"></div>
+        <div class="bar-r" id="bR" style="width:50%"></div>
+        <div class="bar-mid"></div>
       </div>
-      <div class="bar-pct-row">
-        <span class="l" id="pctLaura">50%</span>
-        <span class="r" id="pctAura">50%</span>
+      <div class="pct-row">
+        <span class="l" id="pL">50%</span>
+        <span class="r" id="pR">50%</span>
       </div>
     </div>
-    <div class="score-block">
-      <div class="score-label aura">AURA</div>
-      <div class="score-count aura" id="countAura">0</div>
-    </div>
+    <div class="num aura" id="nA">0</div>
+    <button class="btn-reset" onclick="reset()" title="Reiniciar">⟳</button>
   </div>
-
-  <div class="leading" id="leadingText" style="color:#555">— Sin votos aún —</div>
-
-  <div class="feed-section">
-    <div class="feed-title">Chat en vivo</div>
-    <div id="feedList"></div>
-  </div>
-
-  <div class="config-section">
-    <div class="config-title">URL del servidor (Railway)</div>
-    <div class="config-row">
-      <input type="text" id="serverUrl" placeholder="wss://tu-app.railway.app">
-      <button class="btn" onclick="reconnect()">Conectar</button>
-    </div>
-  </div>
-
-  <div class="controls">
-    <button class="btn danger" onclick="resetAll()">⟳ Reiniciar</button>
-  </div>
-
 </div>
-
 <script>
-let aura = 0, laura = 0;
-let ws = null;
-
+const SERVER = 'wss://aurometro-production.up.railway.app';
+let aura = 0, laura = 0, ws = null;
 const $ = id => document.getElementById(id);
-
-// ── UI ──────────────────────────────────────────────────────────────────────
-function updateUI() {
-  $('countAura').textContent  = aura;
-  $('countLaura').textContent = laura;
-  const total = aura + laura;
-  if (total === 0) {
-    $('barAura').style.width  = '50%';
-    $('barLaura').style.width = '50%';
-    $('pctAura').textContent  = '50%';
-    $('pctLaura').textContent = '50%';
-    $('leadingText').style.color   = '#555';
-    $('leadingText').textContent   = '— Sin votos aún —';
-  } else {
-    const pA = Math.round(aura  / total * 100);
-    const pL = 100 - pA;
-    $('barAura').style.width  = pA + '%';
-    $('barLaura').style.width = pL + '%';
-    $('pctAura').textContent  = pA + '%';
-    $('pctLaura').textContent = pL + '%';
-    if (aura > laura) {
-      $('leadingText').style.color = 'var(--aura)';
-      $('leadingText').textContent = `🔥 AURA lleva la delantera (+${aura - laura})`;
-    } else if (laura > aura) {
-      $('leadingText').style.color = 'var(--laura)';
-      $('leadingText').textContent = `❄️ LAURA lleva la delantera (+${laura - aura})`;
-    } else {
-      $('leadingText').style.color = '#aaa';
-      $('leadingText').textContent = '⚡ ¡EMPATE!';
-    }
-  }
+function ui() {
+  $('nA').textContent = aura; $('nL').textContent = laura;
+  const t = aura + laura, pA = t ? Math.round(aura/t*100) : 50, pL = t ? 100-pA : 50;
+  $('bR').style.width = pA+'%'; $('bL').style.width = pL+'%';
+  $('pR').textContent = pA+'%'; $('pL').textContent = pL+'%';
 }
-
-function setStatus(state, text) {
-  $('statusDot').className  = 'status-dot ' + state;
-  $('statusText').textContent = text;
+function pop(id) { const e=$(id); e.classList.add('pop'); setTimeout(()=>e.classList.remove('pop'),160); }
+function flash(t) { const e=$(t==='aura'?'fA':'fL'); e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),200); }
+function vote(t) { if(t==='aura'){aura++;pop('nA');flash('aura');}else{laura++;pop('nL');flash('laura');} ui(); }
+function reset() { aura=0; laura=0; ui(); }
+function setDot(s) { $('dot').className='dot '+s; }
+function connect() {
+  if(ws){try{ws.close();}catch(e){}}
+  setDot('wait');
+  ws = new WebSocket(SERVER);
+  ws.onopen    = ()=>setDot('on');
+  ws.onclose   = ()=>{ setDot('err'); setTimeout(connect,4000); };
+  ws.onerror   = ()=>setDot('err');
+  ws.onmessage = (e)=>{ try{ const d=JSON.parse(e.data); if(d.type==='aura'||d.type==='laura') vote(d.type); }catch(err){} };
 }
-
-function popAnim(el) {
-  el.classList.add('pop');
-  setTimeout(() => el.classList.remove('pop'), 180);
-}
-
-function flash(type) {
-  const el = $(type === 'aura' ? 'flashAura' : 'flashLaura');
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 220);
-}
-
-function particles(side, color) {
-  for (let i = 0; i < 7; i++) {
-    const p = document.createElement('div');
-    p.className = 'particle';
-    p.style.background = color;
-    p.style.top  = (Math.random() * 60 + 20) + 'vh';
-    p.style.left = side === 'right'
-      ? (Math.random() * 20 + 72) + 'vw'
-      : (Math.random() * 20 + 5)  + 'vw';
-    p.style.animationDelay = (Math.random() * 0.15) + 's';
-    document.body.appendChild(p);
-    setTimeout(() => p.remove(), 1000);
-  }
-}
-
-function addFeed(user, msg, type) {
-  const el = document.createElement('div');
-  el.className = 'feed-item';
-  el.innerHTML = `
-    <span class="feed-user">${esc(user)}</span>
-    <span class="feed-msg">${esc(msg)}</span>
-    <span class="feed-tag ${type}">${type.toUpperCase()}</span>`;
-  $('feedList').prepend(el);
-  while ($('feedList').children.length > 7)
-    $('feedList').removeChild($('feedList').lastChild);
-}
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ── Vote ────────────────────────────────────────────────────────────────────
-function vote(type, user, msg) {
-  if (type === 'aura') {
-    aura++;
-    flash('aura'); popAnim($('countAura')); particles('right','var(--aura)');
-  } else {
-    laura++;
-    flash('laura'); popAnim($('countLaura')); particles('left','var(--laura)');
-  }
-  updateUI();
-  addFeed(user, msg, type);
-}
-
-function resetAll() {
-  aura = 0; laura = 0;
-  $('feedList').innerHTML = '';
-  updateUI();
-}
-
-// ── WebSocket al servidor Railway ───────────────────────────────────────────
-function reconnect() {
-  if (ws) { ws.close(); ws = null; }
-
-  let url = $('serverUrl').value.trim();
-  if (!url) { setStatus('error', 'Ingresá la URL del servidor'); return; }
-  if (url.startsWith('http://'))  url = url.replace('http://',  'ws://');
-  if (url.startsWith('https://')) url = url.replace('https://', 'wss://');
-  if (!url.startsWith('ws'))      url = 'wss://' + url;
-
-  localStorage.setItem('aurometro_server', url);
-  setStatus('connecting', 'Conectando…');
-
-  ws = new WebSocket(url);
-
-  ws.onopen  = () => setStatus('connected', 'Conectado · recibiendo chat');
-  ws.onclose = () => { setStatus('error', 'Desconectado — reintentando…'); setTimeout(reconnect, 5000); };
-  ws.onerror = () => setStatus('error', 'Error de conexión');
-
-  ws.onmessage = (e) => {
-    try {
-      const d = JSON.parse(e.data);
-      if (d.type === 'aura' || d.type === 'laura') {
-        vote(d.type, d.user || '?', d.msg || d.type);
-      }
-    } catch(err) {}
-  };
-}
-
-// ── Init ────────────────────────────────────────────────────────────────────
-updateUI();
-const saved = localStorage.getItem('aurometro_server');
-if (saved) {
-  $('serverUrl').value = saved;
-  reconnect();
-} else {
-  setStatus('connecting', 'Ingresá la URL del servidor Railway');
-}
+ui(); connect();
 </script>
 </body>
 </html>
