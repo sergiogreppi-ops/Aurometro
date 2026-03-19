@@ -8,34 +8,40 @@
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: transparent; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .widget {
-    background: transparent;
-    border: none;
-    padding: 10px 18px 14px;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
-    
-    
-  }
-  .title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.7rem; letter-spacing: 0.35em;
-    color: #888; text-transform: uppercase;
-  }
+  .widget { display:flex; flex-direction:column; align-items:center; gap:6px; }
   .row { display:flex; align-items:center; gap:14px; }
+
+  /* Nombres con fondo */
+  .names {
+    display:flex; align-items:center; justify-content:center;
+    gap: 6px;
+  }
+  .name {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:0.85rem; letter-spacing:0.2em;
+    padding: 2px 8px; border-radius:5px;
+  }
+  .name.laura { color:#00cfff; background:rgba(0,0,0,0.6); }
+  .name.aura  { color:#ff2244; background:rgba(0,0,0,0.6); }
+  .name.sep   { color:#666; font-size:0.65rem; background:none; padding:0; }
+
+  /* Números */
   .num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.8rem; line-height:1;
-    min-width: 52px; text-align:center;
-    transition: transform 0.12s;
+    font-family:'Bebas Neue',sans-serif;
+    font-size:2.8rem; line-height:1;
+    min-width:52px; text-align:center;
+    transition:transform 0.12s;
   }
   .num.laura { color:#00cfff; text-shadow:0 0 18px #00cfff99; }
   .num.aura  { color:#ff2244; text-shadow:0 0 18px #ff224499; }
-  .num.pop   { transform: scale(1.35); }
-  .bar-wrap { display:flex; flex-direction:column; gap:5px; }
+  .num.pop   { transform:scale(1.35); }
+
+  /* Barra */
+  .bar-wrap { display:flex; flex-direction:column; gap:4px; }
   .bar-track {
     width:220px; height:18px;
-    background:#1a1a24; border-radius:9px;
-    overflow:hidden; position:relative; border:1px solid #222;
+    background:rgba(20,20,30,0.7); border-radius:9px;
+    overflow:hidden; position:relative;
   }
   .bar-l {
     position:absolute; left:0; top:0; bottom:0; border-radius:9px;
@@ -49,22 +55,28 @@
     box-shadow:0 0 12px #ff224466;
     transition:width 0.45s cubic-bezier(0.34,1.56,0.64,1);
   }
-  .bar-mid { position:absolute; left:50%; top:0; bottom:0; width:2px; background:#fff; transform:translateX(-50%); opacity:0.2; }
+  .bar-mid { position:absolute; left:50%; top:0; bottom:0; width:2px; background:#fff; transform:translateX(-50%); opacity:0.25; }
   .pct-row { display:flex; justify-content:space-between; font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.08em; }
-  .pct-row .l { color:#00cfff; opacity:0.6; }
-  .pct-row .r { color:#ff2244; opacity:0.6; }
+  .pct-row .l { color:#00cfff; opacity:0.7; }
+  .pct-row .r { color:#ff2244; opacity:0.7; }
+
+  /* Botón reset */
   .btn-reset {
-    background:none; border:1px solid #2a2a3a; border-radius:8px;
+    background:rgba(0,0,0,0.5); border:1px solid #444; border-radius:8px;
     color:#aaa; font-size:1rem; width:30px; height:30px;
     cursor:pointer; display:flex; align-items:center; justify-content:center;
     transition:all 0.2s; flex-shrink:0;
   }
-  .btn-reset:hover { color:#ff4455; border-color:#ff2244; background:rgba(255,34,68,0.08); }
-  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#333; }
+  .btn-reset:hover { color:#ff4455; border-color:#ff2244; background:rgba(255,34,68,0.15); }
+
+  /* Dot */
+  .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; background:#555; }
   .dot.on   { background:#00ff88; box-shadow:0 0 6px #00ff88; animation:p 2s infinite; }
   .dot.err  { background:#ff3333; }
   .dot.wait { background:#ffaa00; animation:p 1s infinite; }
   @keyframes p { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Flash */
   .flash { position:fixed; inset:0; pointer-events:none; opacity:0; transition:opacity 0.1s; z-index:50; }
   .flash.af { background:radial-gradient(ellipse at right,rgba(255,34,68,0.2) 0%,transparent 60%); }
   .flash.lf { background:radial-gradient(ellipse at left,rgba(0,207,255,0.16) 0%,transparent 60%); }
@@ -75,7 +87,11 @@
 <div class="flash af" id="fA"></div>
 <div class="flash lf" id="fL"></div>
 <div class="widget">
-  <div class="title">Aurometro</div>
+  <div class="names">
+    <span class="name laura">LAURA</span>
+    <span class="name sep">vs</span>
+    <span class="name aura">AURA</span>
+  </div>
   <div class="row">
     <div class="dot wait" id="dot"></div>
     <div class="num laura" id="nL">0</div>
@@ -100,7 +116,7 @@ let aura = 0, laura = 0, ws = null;
 const $ = id => document.getElementById(id);
 function ui() {
   $('nA').textContent = aura; $('nL').textContent = laura;
-  const t = aura + laura, pA = t ? Math.round(aura/t*100) : 50, pL = t ? 100-pA : 50;
+  const t = aura+laura, pA = t ? Math.round(aura/t*100) : 50, pL = t ? 100-pA : 50;
   $('bR').style.width = pA+'%'; $('bL').style.width = pL+'%';
   $('pR').textContent = pA+'%'; $('pL').textContent = pL+'%';
 }
