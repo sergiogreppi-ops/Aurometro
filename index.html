@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AURA vs LAURA — khandbl</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --aura: #ff2244;
+    --aura-glow: #ff224488;
+    --laura: #00cfff;
+    --laura-glow: #00cfff88;
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --text: #e0e0e0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Animated scanlines */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 900px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+  }
+
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    background: linear-gradient(90deg, var(--laura) 0%, #fff 45%, #fff 55%, var(--aura) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .channel-badge {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 3px 14px;
+    border: 1px solid #333;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    color: #666;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Status */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #333;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .status-dot.connecting { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; animation: pulse-yellow 1s infinite; }
+  .status-dot.connected  { background: #00ff88; box-shadow: 0 0 8px #00ff88; animation: pulse-green 2s infinite; }
+  .status-dot.error      { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
+
+  @keyframes pulse-yellow { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  @keyframes pulse-green  { 0%,100%{opacity:1} 50%{opacity:0.7} }
+
+  /* Score row */
+  .scores {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .score-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+
+  .score-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    letter-spacing: 0.12em;
+  }
+  .score-label.laura { color: var(--laura); text-shadow: 0 0 20px var(--laura-glow); }
+  .score-label.aura  { color: var(--aura);  text-shadow: 0 0 20px var(--aura-glow);  }
+
+  .score-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 6rem);
+    line-height: 1;
+    transition: transform 0.15s ease;
+  }
+  .score-count.laura { color: var(--laura); text-shadow: 0 0 40px var(--laura-glow), 0 0 80px var(--laura-glow); }
+  .score-count.aura  { color: var(--aura);  text-shadow: 0 0 40px var(--aura-glow),  0 0 80px var(--aura-glow);  }
+  .score-count.pop   { transform: scale(1.3); }
+
+  .score-word {
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    color: #444;
+    text-transform: uppercase;
+  }
+
+  /* Battle Bar */
+  .bar-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bar-track {
+    height: 22px;
+    background: #1a1a24;
+    border-radius: 11px;
+    overflow: hidden;
+    border: 1px solid #222;
+    position: relative;
+  }
+
+  .bar-fill-left {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    border-radius: 11px;
+    background: linear-gradient(90deg, #0088cc, var(--laura));
+    box-shadow: 0 0 20px var(--laura-glow);
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .bar-fill-right {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    border-radius: 11px;
+    background: linear-gradient(270deg, #cc0022, var(--aura));
+    box-shadow: 0 0 20px var(--aura-glow);
+    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Center divider */
+  .bar-center {
+    position: absolute;
+    left: 50%; top: -2px; bottom: -2px;
+    width: 2px;
+    background: #fff;
+    transform: translateX(-50%);
+    opacity: 0.3;
+  }
+
+  .bar-pct-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: #444;
+    letter-spacing: 0.1em;
+  }
+  .bar-pct-row .left  { color: var(--laura); opacity: 0.7; }
+  .bar-pct-row .right { color: var(--aura);  opacity: 0.7; }
+
+  /* Leading indicator */
+  .leading {
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    min-height: 1.2em;
+    transition: color 0.4s;
+  }
+
+  /* Recent messages feed */
+  .feed-section {
+    background: var(--surface);
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    padding: 14px;
+    max-height: 200px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .feed-title {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #333;
+    margin-bottom: 10px;
+  }
+
+  .feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .feed-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.72rem;
+    opacity: 0;
+    animation: fadeInUp 0.3s ease forwards;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .feed-user {
+    color: #555;
+    flex-shrink: 0;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .feed-msg {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #888;
+  }
+
+  .feed-tag {
+    font-size: 0.6rem;
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+  .feed-tag.aura  { background: rgba(255,34,68,0.2);  color: var(--aura);  }
+  .feed-tag.laura { background: rgba(0,207,255,0.18); color: var(--laura); }
+
+  /* Manual input (fallback) */
+  .manual-section {
+    background: var(--surface);
+    border: 1px solid #1e1e2e;
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .manual-title {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: #333;
+    margin-bottom: 12px;
+  }
+
+  .manual-fields {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .manual-fields input {
+    flex: 1;
+    min-width: 140px;
+    background: #0d0d14;
+    border: 1px solid #222;
+    border-radius: 8px;
+    color: #ccc;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .manual-fields input:focus { border-color: #444; }
+  .manual-fields input::placeholder { color: #333; }
+
+  .btn {
+    background: #1a1a24;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    color: #aaa;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 8px 16px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: #222230; color: #fff; border-color: #444; }
+
+  .btn.danger {
+    color: #ff4455;
+    border-color: #3a1a1a;
+  }
+  .btn.danger:hover { background: #2a0a0f; border-color: #ff2244; }
+
+  /* Flash overlay */
+  .flash {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.1s;
+  }
+  .flash.aura-flash  { background: radial-gradient(ellipse at right, rgba(255,34,68,0.25) 0%, transparent 70%); }
+  .flash.laura-flash { background: radial-gradient(ellipse at left, rgba(0,207,255,0.2) 0%, transparent 70%); }
+  .flash.show { opacity: 1; }
+
+  /* Confetti particle */
+  .particle {
+    position: fixed;
+    width: 6px; height: 6px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 200;
+    animation: fly 0.8s ease-out forwards;
+  }
+  @keyframes fly {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(-80px) rotate(360deg) scale(0); opacity: 0; }
+  }
+
+  /* Reset btn row */
+  .controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="flash aura-flash"  id="flashAura"></div>
+<div class="flash laura-flash" id="flashLaura"></div>
+
+<div class="container">
+
+  <div class="header">
+    <h1>LAURA ⚡ AURA</h1>
+    <span class="channel-badge">khandbl · kick.com</span>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Iniciando…</span>
+  </div>
+
+  <div class="scores">
+    <!-- LAURA left (celeste) -->
+    <div class="score-block">
+      <div class="score-label laura">LAURA</div>
+      <div class="score-count laura" id="countLaura">0</div>
+      <div class="score-word">votos</div>
+    </div>
+
+    <!-- BAR center -->
+    <div class="bar-wrapper">
+      <div class="bar-track">
+        <div class="bar-fill-left"  id="barLaura" style="width:50%"></div>
+        <div class="bar-fill-right" id="barAura"  style="width:50%"></div>
+        <div class="bar-center"></div>
+      </div>
+      <div class="bar-pct-row">
+        <span class="left"  id="pctLaura">50%</span>
+        <span class="right" id="pctAura">50%</span>
+      </div>
+    </div>
+
+    <!-- AURA right (rojo) -->
+    <div class="score-block">
+      <div class="score-label aura">AURA</div>
+      <div class="score-count aura" id="countAura">0</div>
+      <div class="score-word">votos</div>
+    </div>
+  </div>
+
+  <div class="leading" id="leadingText">— Sin votos aún —</div>
+
+  <!-- Feed de mensajes recientes -->
+  <div class="feed-section">
+    <div class="feed-title">Mensajes recientes del chat</div>
+    <div class="feed-list" id="feedList"></div>
+  </div>
+
+  <!-- Config manual -->
+  <div class="manual-section">
+    <div class="manual-title">Chatroom ID (solo el número)</div>
+    <div class="manual-fields">
+      <input type="text" id="inputChannel" placeholder="ID numérico del chatroom (ej: 30874569)" value="30874569">
+      <button class="btn" onclick="reconnect()">Conectar</button>
+    </div>
+    <div style="margin-top:8px; font-size:0.6rem; color:#333; letter-spacing:0.08em;">
+      Ingresá solo el ID numérico y presioná Conectar.
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn danger" onclick="resetCounters()">⟳ Reiniciar contadores</button>
+    <!-- Debug buttons -->
+    <button class="btn" onclick="simulateVote('laura')" title="Simular voto LAURA">+LAURA</button>
+    <button class="btn" onclick="simulateVote('aura')"  title="Simular voto AURA">+AURA</button>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let aura = 0, laura = 0;
+const MAX_FEED = 8;
+let ws = null;
+let pingInterval = null;
+let chatroomId = null;
+let currentChannel = 'khandbl';
+
+// Pusher endpoint usado por Kick (websocket público sin auth)
+const PUSHER_URL = 'wss://ws-us2.pusher.com/app/eb1d5f283081a78b932c?protocol=7&client=js&version=7.6.0&flash=false';
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const elCountAura  = document.getElementById('countAura');
+const elCountLaura = document.getElementById('countLaura');
+const elBarAura    = document.getElementById('barAura');
+const elBarLaura   = document.getElementById('barLaura');
+const elPctAura    = document.getElementById('pctAura');
+const elPctLaura   = document.getElementById('pctLaura');
+const elLeading    = document.getElementById('leadingText');
+const elFeedList   = document.getElementById('feedList');
+const elStatusDot  = document.getElementById('statusDot');
+const elStatusText = document.getElementById('statusText');
+const elFlashAura  = document.getElementById('flashAura');
+const elFlashLaura = document.getElementById('flashLaura');
+
+// ── Update UI ──────────────────────────────────────────────────────────────
+function updateUI() {
+  elCountAura.textContent  = aura;
+  elCountLaura.textContent = laura;
+
+  const total = aura + laura;
+  if (total === 0) {
+    elBarAura.style.width  = '50%';
+    elBarLaura.style.width = '50%';
+    elPctAura.textContent  = '50%';
+    elPctLaura.textContent = '50%';
+    elLeading.style.color  = '#555';
+    elLeading.textContent  = '— Sin votos aún —';
+  } else {
+    const pA = Math.round((aura  / total) * 100);
+    const pL = Math.round((laura / total) * 100);
+    elBarAura.style.width  = pA + '%';
+    elBarLaura.style.width = pL + '%';
+    elPctAura.textContent  = pA + '%';
+    elPctLaura.textContent = pL + '%';
+
+    if (aura > laura) {
+      elLeading.style.color   = 'var(--aura)';
+      elLeading.textContent   = `🔥 AURA lleva la delantera (+${aura - laura})`;
+    } else if (laura > aura) {
+      elLeading.style.color   = 'var(--laura)';
+      elLeading.textContent   = `❄️ LAURA lleva la delantera (+${laura - aura})`;
+    } else {
+      elLeading.style.color   = '#aaa';
+      elLeading.textContent   = '⚡ ¡EMPATE!';
+    }
+  }
+}
+
+// ── Vote ───────────────────────────────────────────────────────────────────
+function vote(type, user, msg) {
+  if (type === 'aura') {
+    aura++;
+    flashEffect('aura');
+    popAnim(elCountAura);
+    spawnParticles('right', 'var(--aura)');
+  } else {
+    laura++;
+    flashEffect('laura');
+    popAnim(elCountLaura);
+    spawnParticles('left', 'var(--laura)');
+  }
+  updateUI();
+  addFeedItem(user, msg, type);
+}
+
+function simulateVote(type) {
+  vote(type, 'simulado', type === 'aura' ? 'aura' : 'laura');
+}
+
+// ── Flash ──────────────────────────────────────────────────────────────────
+function flashEffect(type) {
+  const el = type === 'aura' ? elFlashAura : elFlashLaura;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 250);
+}
+
+// ── Pop animation ──────────────────────────────────────────────────────────
+function popAnim(el) {
+  el.classList.add('pop');
+  setTimeout(() => el.classList.remove('pop'), 200);
+}
+
+// ── Particles ──────────────────────────────────────────────────────────────
+function spawnParticles(side, color) {
+  const count = 6;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.background = color;
+    p.style.top  = (Math.random() * 60 + 20) + 'vh';
+    p.style.left = side === 'right'
+      ? (Math.random() * 20 + 75) + 'vw'
+      : (Math.random() * 20 + 5) + 'vw';
+    p.style.animationDelay = (Math.random() * 0.2) + 's';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1000);
+  }
+}
+
+// ── Feed ───────────────────────────────────────────────────────────────────
+function addFeedItem(user, msg, type) {
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `
+    <span class="feed-user">${escHtml(user)}</span>
+    <span class="feed-msg">${escHtml(msg)}</span>
+    <span class="feed-tag ${type}">${type.toUpperCase()}</span>
+  `;
+  elFeedList.prepend(item);
+  while (elFeedList.children.length > MAX_FEED) {
+    elFeedList.removeChild(elFeedList.lastChild);
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// ── Status ─────────────────────────────────────────────────────────────────
+function setStatus(state, text) {
+  elStatusDot.className  = 'status-dot ' + state;
+  elStatusText.textContent = text;
+}
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+function resetCounters() {
+  aura = 0; laura = 0;
+  elFeedList.innerHTML = '';
+  updateUI();
+}
+
+// ── Get chatroom ID via Kick API ───────────────────────────────────────────
+async function getChatroomId(channelName) {
+  // Try v2 API first, then v1
+  const urls = [
+    `https://kick.com/api/v2/channels/${channelName}`,
+    `https://kick.com/api/v1/channels/${channelName}`,
+  ];
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!r.ok) continue;
+      const d = await r.json();
+      // v2 → d.chatroom.id  |  v1 → d.chatroom.id
+      const id = d?.chatroom?.id;
+      if (id) return id;
+    } catch(e) { /* try next */ }
+  }
+  return null;
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+function connectWS(roomId) {
+  if (ws) { ws.close(); ws = null; }
+  clearInterval(pingInterval);
+
+  ws = new WebSocket(PUSHER_URL);
+
+  ws.onopen = () => {
+    setStatus('connected', `Conectado — sala ${roomId}`);
+
+    // Subscribe to chatroom channel
+    const sub = JSON.stringify({
+      event: 'pusher:subscribe',
+      data:  { auth: '', channel: `chatrooms.${roomId}.v2` }
+    });
+    ws.send(sub);
+
+    // Ping keepalive every 25s
+    pingInterval = setInterval(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ event: 'pusher:ping', data: {} }));
+      }
+    }, 25000);
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const packet = JSON.parse(e.data);
+      const ev = packet.event || '';
+
+      if (ev === 'pusher:connection_established') return;
+      if (ev === 'pusher:pong') return;
+
+      // Chat message event
+      if (ev === 'App\\Events\\ChatMessageEvent' || ev.includes('ChatMessage')) {
+        const payload = typeof packet.data === 'string'
+          ? JSON.parse(packet.data)
+          : packet.data;
+
+        const raw = (payload?.message?.content || payload?.content || '').toLowerCase().trim();
+        const user = payload?.sender?.username || payload?.message?.sender?.username || '?';
+
+        // Exact word match
+        if (/\baura\b/.test(raw))  vote('aura',  user, payload?.message?.content || raw);
+        if (/\blaura\b/.test(raw)) vote('laura', user, payload?.message?.content || raw);
+      }
+    } catch(err) { /* ignore parse errors */ }
+  };
+
+  ws.onerror = () => setStatus('error', 'Error de conexión');
+
+  ws.onclose = () => {
+    setStatus('error', 'Desconectado — reintentando…');
+    clearInterval(pingInterval);
+    setTimeout(() => reconnect(), 5000);
+  };
+}
+
+// ── Reconnect ──────────────────────────────────────────────────────────────
+function reconnect() {
+  const val = document.getElementById('inputChannel').value.trim();
+  const numMatch = val.match(/\d+/);
+  const id = numMatch ? numMatch[0] : '';
+  if (!id) {
+    setStatus('error', 'Ingresá el ID numérico del chatroom.');
+    return;
+  }
+  document.getElementById('inputChannel').value = id;
+  chatroomId = id;
+  setStatus('connecting', `Conectando al chatroom ${id}…`);
+  connectWS(id);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+updateUI();
+// Auto-connect con ID hardcodeado de khandbl
+setTimeout(() => {
+  chatroomId = '30874569';
+  setStatus('connecting', 'Conectando al chatroom 30874569…');
+  connectWS('30874569');
+}, 300);
+</script>
+</body>
+</html>
