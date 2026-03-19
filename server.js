@@ -1,104 +1,108 @@
 const express = require('express');
 const { createServer } = require('http');
-const { WebSocketServer } = require('ws');
+const { WebSocketServer, WebSocket } = require('ws');
 const crypto = require('crypto');
 
-const app = express();
+const app    = express();
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+const wss    = new WebSocketServer({ server });
 
-const CLIENT_SECRET = process.env.KICK_CLIENT_SECRET || '7a7c58df97fe5f34a85f5890c5b426ae4dca25607ddf86594d9b12163b4535bd';
-const PORT = process.env.PORT || 3000;
+const PORT         = process.env.PORT         || 3000;
+const CHATROOM_ID  = process.env.CHATROOM_ID  || '30874569'; // khandbl
+const PUSHER_URL   = 'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0-rc2&flash=false';
 
-// Clientes WebSocket conectados (las páginas HTML)
+// ── Clientes HTML conectados ───────────────────────────────────────────────
 const clients = new Set();
-
 wss.on('connection', (ws) => {
   clients.add(ws);
-  console.log(`Cliente conectado. Total: ${clients.size}`);
-  ws.on('close', () => {
-    clients.delete(ws);
-    console.log(`Cliente desconectado. Total: ${clients.size}`);
-  });
+  console.log(`HTML cliente conectado. Total: ${clients.size}`);
+  ws.on('close', () => { clients.delete(ws); console.log(`HTML cliente desconectado. Total: ${clients.size}`); });
 });
 
 function broadcast(data) {
   const msg = JSON.stringify(data);
-  for (const client of clients) {
-    if (client.readyState === 1) client.send(msg);
-  }
+  for (const c of clients) if (c.readyState === 1) c.send(msg);
 }
 
-// Verificar firma de Kick
-function verifySignature(req, rawBody) {
-  const msgId        = req.headers['kick-event-message-id']        || '';
-  const msgTimestamp = req.headers['kick-event-message-timestamp']  || '';
-  const signature    = req.headers['kick-event-signature']          || '';
+// ── Conexión a Pusher (Kick) ───────────────────────────────────────────────
+let kickWs       = null;
+let pingInterval = null;
+let reconnectTimeout = null;
 
-  const hmacMessage = msgId + msgTimestamp + rawBody;
-  const expected = 'sha256=' + crypto
-    .createHmac('sha256', CLIENT_SECRET)
-    .update(hmacMessage)
-    .digest('hex');
+function connectToKick() {
+  if (kickWs) { try { kickWs.terminate(); } catch(e){} kickWs = null; }
+  clearInterval(pingInterval);
+  clearTimeout(reconnectTimeout);
 
-  return signature === expected;
-}
+  console.log(`Conectando a Kick chat (sala ${CHATROOM_ID})...`);
 
-// Leer body raw para verificar firma
-app.use('/webhook', express.raw({ type: '*/*' }));
-app.use(express.json());
-
-// Health check
-app.get('/', (req, res) => res.send('Aurometro server OK'));
-
-// Webhook de Kick
-app.post('/webhook', (req, res) => {
-  const rawBody = req.body.toString('utf8');
-
-  // Verificar firma (si Kick la manda)
-  const sig = req.headers['kick-event-signature'];
-  if (sig && !verifySignature(req, rawBody)) {
-    console.log('Firma inválida');
-    return res.status(403).send('Invalid signature');
-  }
-
-  let payload;
-  try { payload = JSON.parse(rawBody); } catch(e) {
-    return res.status(400).send('Bad JSON');
-  }
-
-  const eventType = req.headers['kick-event-type'] || payload?.type || '';
-  console.log('Evento recibido:', eventType, JSON.stringify(payload).slice(0, 120));
-
-  // Evento de mensaje de chat
-  if (eventType === 'chat.message.sent' || eventType.includes('chat')) {
-    const content = (
-      payload?.data?.content ||
-      payload?.data?.message?.content ||
-      payload?.message?.content ||
-      payload?.content || ''
-    ).toLowerCase().trim();
-
-    const sender = 
-      payload?.data?.sender?.username ||
-      payload?.data?.chatter?.username ||
-      payload?.sender?.username || '?';
-
-    const hasAura  = /\baura\b/.test(content);
-    const hasLaura = /\blaura\b/.test(content);
-
-    if (hasAura || hasLaura) {
-      broadcast({
-        type: hasAura ? 'aura' : 'laura',
-        user: sender,
-        msg: payload?.data?.content || payload?.data?.message?.content || content
-      });
+  kickWs = new WebSocket(PUSHER_URL, {
+    headers: {
+      'Origin': 'https://kick.com',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
-  }
+  });
 
-  res.status(200).send('OK');
+  kickWs.on('open', () => {
+    console.log('Conectado a Pusher/Kick');
+    kickWs.send(JSON.stringify({
+      event: 'pusher:subscribe',
+      data:  { auth: '', channel: `chatrooms.${CHATROOM_ID}.v2` }
+    }));
+    // Ping cada 25s para mantener conexión viva
+    pingInterval = setInterval(() => {
+      if (kickWs?.readyState === 1)
+        kickWs.send(JSON.stringify({ event: 'pusher:ping', data: {} }));
+    }, 25000);
+  });
+
+  kickWs.on('message', (raw) => {
+    try {
+      const pkt = JSON.parse(raw.toString());
+      const ev  = pkt.event || '';
+
+      if (ev === 'pusher:pong' || ev === 'pusher:connection_established') return;
+
+      console.log('Kick evento:', ev, String(raw).slice(0, 150));
+
+      if (ev.includes('ChatMessage') || ev === 'App\\Events\\ChatMessageEvent') {
+        const payload = typeof pkt.data === 'string' ? JSON.parse(pkt.data) : pkt.data;
+
+        const content  = (payload?.message?.content || payload?.content || '').toLowerCase().trim();
+        const sender   = payload?.sender?.username || payload?.message?.sender?.username || '?';
+        const original = payload?.message?.content || payload?.content || content;
+
+        const hasAura  = /\baura\b/.test(content);
+        const hasLaura = /\blaura\b/.test(content);
+
+        if (hasLaura) { console.log(`VOTO LAURA de ${sender}`); broadcast({ type: 'laura', user: sender, msg: original }); }
+        if (hasAura)  { console.log(`VOTO AURA de ${sender}`);  broadcast({ type: 'aura',  user: sender, msg: original }); }
+      }
+    } catch(e) { console.error('Parse error:', e.message); }
+  });
+
+  kickWs.on('error', (e) => console.error('Kick WS error:', e.message));
+
+  kickWs.on('close', (code, reason) => {
+    console.log(`Kick WS cerrado (${code}). Reintentando en 5s...`);
+    clearInterval(pingInterval);
+    reconnectTimeout = setTimeout(connectToKick, 5000);
+  });
+}
+
+// ── Health check ──────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  const connected = kickWs?.readyState === 1;
+  res.send(`
+    <h2>Aurometro Server</h2>
+    <p>Kick chat: ${connected ? '🟢 Conectado' : '🔴 Desconectado'}</p>
+    <p>Clientes HTML: ${clients.size}</p>
+    <p>Sala: ${CHATROOM_ID} (khandbl)</p>
+  `);
 });
 
+// ── Arrancar ──────────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`Aurometro server corriendo en puerto ${PORT}`);
+  console.log(`Aurometro server en puerto ${PORT}`);
+  connectToKick();
 });
